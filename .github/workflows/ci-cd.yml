@@ -1,6 +1,5 @@
 name: CI/CD Pipeline
 
-# Disparadores: cuándo se ejecuta el pipeline
 on:
   push:
     branches: [main]
@@ -9,8 +8,7 @@ on:
 
 jobs:
   # ------------------------------------------------------------------
-  # JOB 1: BUILD - instalar dependencias y compilar (no hay compilación
-  # en Node, pero esta etapa garantiza que el proyecto se puede armar)
+  # JOB 1: BUILD - instalar dependencias
   # ------------------------------------------------------------------
   build:
     name: Build
@@ -19,17 +17,22 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v4
 
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Instalar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Instalar dependencias
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
   # ------------------------------------------------------------------
-  # JOB 2: LINT - análisis estático del código con ESLint
+  # JOB 2: LINT - análisis estático con ESLint
   # ------------------------------------------------------------------
   lint:
     name: Lint (Inspección de código)
@@ -37,16 +40,19 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
       - name: Ejecutar ESLint
-        run: npm run lint
+        run: pnpm lint
 
   # ------------------------------------------------------------------
-  # JOB 3: TEST - ejecutar pruebas automatizadas con Jest
+  # JOB 3: TEST - pruebas automatizadas con Jest
   # ------------------------------------------------------------------
   test:
     name: Test (Pruebas automatizadas)
@@ -54,13 +60,16 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
       - name: Ejecutar tests con cobertura
-        run: npm test
+        run: pnpm test
       - name: Subir cobertura como artefacto
         uses: actions/upload-artifact@v4
         with:
@@ -68,7 +77,7 @@ jobs:
           path: coverage/
 
   # ------------------------------------------------------------------
-  # JOB 4: DOCKER BUILD - construir la imagen Docker
+  # JOB 4: DOCKER BUILD - construir y validar la imagen
   # ------------------------------------------------------------------
   docker:
     name: Docker Build
@@ -86,7 +95,7 @@ jobs:
           docker stop test-container
 
   # ------------------------------------------------------------------
-  # JOB 5: DEPLOY - despliegue a Render (solo en push a main)
+  # JOB 5: DEPLOY - despliegue a Render
   # ------------------------------------------------------------------
   deploy:
     name: Deploy a Render
@@ -95,7 +104,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Trigger deploy en Render
-        run: |
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
       - name: Notificar éxito
-        run: echo "Deploy disparado en Render. Verificar https://tu-app.onrender.com"
+        run: echo "Deploy disparado en Render."
