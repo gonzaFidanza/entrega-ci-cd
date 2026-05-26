@@ -96,8 +96,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      RENDER_APP_URL: https://entrega-ci-cd.onrender.com
     steps:
       - name: Trigger deploy en Render
         run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+      - name: Esperar a que Render termine el deploy
+        run: sleep 90
+
+      - name: Smoke test contra /health
+        run: curl --fail --retry 5 --retry-delay 10 "$RENDER_APP_URL/health"
+
       - name: Notificar éxito
-        run: echo "Deploy disparado en Render."
+        run: echo "Deploy verificado en $RENDER_APP_URL"
