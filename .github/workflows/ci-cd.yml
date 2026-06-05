@@ -119,39 +119,111 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, lint, test, docker, deploy]
     if: always()  # se ejecuta siempre, haya fallado o no
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      BUILD_RESULT: ${{ needs.build.result }}
+      LINT_RESULT: ${{ needs.lint.result }}
+      TEST_RESULT: ${{ needs.test.result }}
+      DOCKER_RESULT: ${{ needs.docker.result }}
+      DEPLOY_RESULT: ${{ needs.deploy.result }}
+      COMMIT_MSG: ${{ github.event.head_commit.message }}
+      COMMIT_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      BRANCH: ${{ github.ref_name }}
+      ACTOR: ${{ github.actor }}
+      EVENT: ${{ github.event_name }}
+      RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      APP_URL: https://entrega-ci-cd.onrender.com
     steps:
-      - name: Calcular estado del pipeline
-        id: status
+      - name: Construir y enviar notificación
         run: |
-          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
-            echo "color=15158332" >> $GITHUB_OUTPUT
-            echo "emoji=❌" >> $GITHUB_OUTPUT
-            echo "titulo=Pipeline FALLÓ" >> $GITHUB_OUTPUT
-          elif [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
-            echo "color=10070709" >> $GITHUB_OUTPUT
-            echo "emoji=⚠️" >> $GITHUB_OUTPUT
-            echo "titulo=Pipeline CANCELADO" >> $GITHUB_OUTPUT
+          set -euo pipefail
+
+          emoji_for() {
+            case "$1" in
+              success)   echo "✅" ;;
+              failure)   echo "❌" ;;
+              cancelled) echo "⚠️" ;;
+              skipped)   echo "⏭️" ;;
+              *)         echo "❔" ;;
+            esac
+          }
+
+          # Estado global del pipeline
+          all="$BUILD_RESULT $LINT_RESULT $TEST_RESULT $DOCKER_RESULT $DEPLOY_RESULT"
+          if echo "$all" | grep -qw failure; then
+            titulo="❌ Pipeline FALLÓ"
+            color=15158332
+            diagnostico="Revisá las etapas marcadas con ❌ y abrí los logs del run para ver el stack trace."
+          elif echo "$all" | grep -qw cancelled; then
+            titulo="⚠️ Pipeline CANCELADO"
+            color=10070709
+            diagnostico="El run fue cancelado antes de terminar (manual o por otro push)."
           else
-            echo "color=3066993" >> $GITHUB_OUTPUT
-            echo "emoji=✅" >> $GITHUB_OUTPUT
-            echo "titulo=Pipeline EXITOSO" >> $GITHUB_OUTPUT
+            titulo="✅ Pipeline EXITOSO"
+            color=3066993
+            diagnostico="Todas las etapas pasaron. Deploy verificado en Render."
           fi
 
-      - name: Enviar mensaje a Discord
-        run: |
-          curl -H "Content-Type: application/json" \
-            -X POST \
-            -d '{
-              "embeds": [{
-                "title": "${{ steps.status.outputs.emoji }} ${{ steps.status.outputs.titulo }}",
-                "color": ${{ steps.status.outputs.color }},
-                "fields": [
-                  { "name": "Repositorio", "value": "${{ github.repository }}", "inline": true },
-                  { "name": "Branch", "value": "${{ github.ref_name }}", "inline": true },
-                  { "name": "Autor", "value": "${{ github.actor }}", "inline": true },
-                  { "name": "Commit", "value": "${{ github.event.head_commit.message }}" },
-                  { "name": "Ver en GitHub", "value": "[Abrir pipeline](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" }
-                ]
+          # Detalle por etapa (multilínea real)
+          etapas=$(cat <<EOF
+$(emoji_for "$BUILD_RESULT")  **Build**       — \`$BUILD_RESULT\`
+$(emoji_for "$LINT_RESULT")  **Lint**        — \`$LINT_RESULT\`
+$(emoji_for "$TEST_RESULT")  **Test**        — \`$TEST_RESULT\`
+$(emoji_for "$DOCKER_RESULT")  **Docker**      — \`$DOCKER_RESULT\`
+$(emoji_for "$DEPLOY_RESULT")  **Deploy**      — \`$DEPLOY_RESULT\`
+EOF
+)
+
+          # Lista de etapas que fallaron (solo failure, no skipped/cancelled)
+          fallos=""
+          [ "$BUILD_RESULT"  = "failure" ] && fallos="${fallos}• **Build** — dependencias no instalaron correctamente\n"
+          [ "$LINT_RESULT"   = "failure" ] && fallos="${fallos}• **Lint** — ESLint detectó errores de estilo o código\n"
+          [ "$TEST_RESULT"   = "failure" ] && fallos="${fallos}• **Test** — algún test de Jest no pasó\n"
+          [ "$DOCKER_RESULT" = "failure" ] && fallos="${fallos}• **Docker** — falló el build de imagen o el health check del contenedor\n"
+          [ "$DEPLOY_RESULT" = "failure" ] && fallos="${fallos}• **Deploy** — Render no respondió o tardó más de lo esperado en /health\n"
+          if [ -z "$fallos" ]; then
+            fallos="—"
+          else
+            # convertir \n literales a saltos reales
+            fallos=$(printf '%b' "$fallos")
+          fi
+
+          sha_short="${COMMIT_SHA:0:7}"
+          # primera línea del mensaje de commit (Discord corta feo si es muy largo)
+          commit_first=$(printf '%s' "$COMMIT_MSG" | head -n1)
+
+          jq -n \
+            --arg titulo "$titulo" \
+            --argjson color "$color" \
+            --arg repo "$REPO" \
+            --arg branch "$BRANCH" \
+            --arg actor "$ACTOR" \
+            --arg event "$EVENT" \
+            --arg sha "$sha_short" \
+            --arg commit "$commit_first" \
+            --arg etapas "$etapas" \
+            --arg fallos "$fallos" \
+            --arg diagnostico "$diagnostico" \
+            --arg run_url "$RUN_URL" \
+            --arg app_url "$APP_URL" \
+            '{
+              embeds: [{
+                title: $titulo,
+                description: $diagnostico,
+                color: $color,
+                fields: [
+                  { name: "Repositorio", value: $repo,   inline: true },
+                  { name: "Branch",      value: $branch, inline: true },
+                  { name: "Autor",       value: $actor,  inline: true },
+                  { name: "Evento",      value: $event,  inline: true },
+                  { name: "Commit",      value: ("`" + $sha + "` — " + $commit) },
+                  { name: "Resultado por etapa", value: $etapas },
+                  { name: "Etapas con error",    value: $fallos },
+                  { name: "Enlaces", value: ("[Abrir pipeline](" + $run_url + ")  ·  [App en Render](" + $app_url + ")") }
+                ],
+                timestamp: (now | todateiso8601)
               }]
-            }' \
-            "${{ secrets.DISCORD_WEBHOOK }}"
+            }' > payload.json
+
+          curl -sS -H "Content-Type: application/json" -X POST -d @payload.json "$DISCORD_WEBHOOK"
