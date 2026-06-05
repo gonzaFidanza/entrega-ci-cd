@@ -71,6 +71,22 @@ jobs:
           path: coverage/
 
   # ------------------------------------------------------------------
+  # JOB 3.5: SYNC SPECS - reflejar specs/ en ClickUp (SDD una vía)
+  # ------------------------------------------------------------------
+  sync-specs:
+    name: Sync specs → ClickUp
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      CLICKUP_TOKEN: ${{ secrets.CLICKUP_TOKEN }}
+      CLICKUP_LIST_ID: ${{ secrets.CLICKUP_LIST_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sincronizar specs con ClickUp
+        run: bash scripts/sync-specs-clickup.sh
+
+  # ------------------------------------------------------------------
   # JOB 4: DOCKER BUILD - construir y validar la imagen
   # ------------------------------------------------------------------
   docker:
@@ -117,13 +133,14 @@ jobs:
   notify:
     name: Notificar a Discord
     runs-on: ubuntu-latest
-    needs: [build, lint, test, docker, deploy]
+    needs: [build, lint, test, sync-specs, docker, deploy]
     if: always()  # se ejecuta siempre, haya fallado o no
     env:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       BUILD_RESULT: ${{ needs.build.result }}
       LINT_RESULT: ${{ needs.lint.result }}
       TEST_RESULT: ${{ needs.test.result }}
+      SPECS_RESULT: ${{ needs.sync-specs.result }}
       DOCKER_RESULT: ${{ needs.docker.result }}
       DEPLOY_RESULT: ${{ needs.deploy.result }}
       COMMIT_MSG: ${{ github.event.head_commit.message }}
@@ -150,7 +167,7 @@ jobs:
           }
 
           # Estado global del pipeline
-          all="$BUILD_RESULT $LINT_RESULT $TEST_RESULT $DOCKER_RESULT $DEPLOY_RESULT"
+          all="$BUILD_RESULT $LINT_RESULT $TEST_RESULT $SPECS_RESULT $DOCKER_RESULT $DEPLOY_RESULT"
           if echo "$all" | grep -qw failure; then
             titulo="❌ Pipeline FALLÓ"
             color=15158332
@@ -170,6 +187,7 @@ jobs:
           etapas="$(emoji_for "$BUILD_RESULT")  **Build** — \`$BUILD_RESULT\`"
           etapas="${etapas}${NL}$(emoji_for "$LINT_RESULT")  **Lint** — \`$LINT_RESULT\`"
           etapas="${etapas}${NL}$(emoji_for "$TEST_RESULT")  **Test** — \`$TEST_RESULT\`"
+          etapas="${etapas}${NL}$(emoji_for "$SPECS_RESULT")  **Specs (ClickUp)** — \`$SPECS_RESULT\`"
           etapas="${etapas}${NL}$(emoji_for "$DOCKER_RESULT")  **Docker** — \`$DOCKER_RESULT\`"
           etapas="${etapas}${NL}$(emoji_for "$DEPLOY_RESULT")  **Deploy** — \`$DEPLOY_RESULT\`"
 
@@ -178,6 +196,7 @@ jobs:
           [ "$BUILD_RESULT"  = "failure" ] && fallos="${fallos}• **Build** — dependencias no instalaron correctamente\n"
           [ "$LINT_RESULT"   = "failure" ] && fallos="${fallos}• **Lint** — ESLint detectó errores de estilo o código\n"
           [ "$TEST_RESULT"   = "failure" ] && fallos="${fallos}• **Test** — algún test de Jest no pasó\n"
+          [ "$SPECS_RESULT"  = "failure" ] && fallos="${fallos}• **Specs** — el sync a ClickUp falló (token, list id o custom field)\n"
           [ "$DOCKER_RESULT" = "failure" ] && fallos="${fallos}• **Docker** — falló el build de imagen o el health check del contenedor\n"
           [ "$DEPLOY_RESULT" = "failure" ] && fallos="${fallos}• **Deploy** — Render no respondió o tardó más de lo esperado en /health\n"
           if [ -z "$fallos" ]; then

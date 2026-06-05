@@ -1,3 +1,10 @@
+---
+id: SPEC-001
+title: Endpoint de Saludo
+status: done
+priority: high
+---
+
 # Spec: Endpoint de Saludo
 
 ## Identificador
