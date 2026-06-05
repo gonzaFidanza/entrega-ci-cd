@@ -23,7 +23,7 @@ describe('SPEC-001-saludo: Endpoint de Saludo', () => {
   // CA-3
   test('CA-3: devuelve "Hola Mundo" por defecto', async () => {
     const res = await request(app).get('/saludo');
-    expect(res.body.mensaje).toBe('Hola Mundo');
+    expect(res.body.mensaje).toBe('Hola Mundofalla');
   });
 
   // CA-4
