@@ -110,3 +110,48 @@ jobs:
 
       - name: Notificar éxito
         run: echo "Deploy verificado en $RENDER_APP_URL"
+
+  # ------------------------------------------------------------------
+  # JOB 6: NOTIFICAR - mandar feedback a Discord (éxito o fallo)
+  # ------------------------------------------------------------------
+  notify:
+    name: Notificar a Discord
+    runs-on: ubuntu-latest
+    needs: [build, lint, test, docker, deploy]
+    if: always()  # se ejecuta siempre, haya fallado o no
+    steps:
+      - name: Calcular estado del pipeline
+        id: status
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
+            echo "color=15158332" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+            echo "titulo=Pipeline FALLÓ" >> $GITHUB_OUTPUT
+          elif [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "color=10070709" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️" >> $GITHUB_OUTPUT
+            echo "titulo=Pipeline CANCELADO" >> $GITHUB_OUTPUT
+          else
+            echo "color=3066993" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+            echo "titulo=Pipeline EXITOSO" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Enviar mensaje a Discord
+        run: |
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d '{
+              "embeds": [{
+                "title": "${{ steps.status.outputs.emoji }} ${{ steps.status.outputs.titulo }}",
+                "color": ${{ steps.status.outputs.color }},
+                "fields": [
+                  { "name": "Repositorio", "value": "${{ github.repository }}", "inline": true },
+                  { "name": "Branch", "value": "${{ github.ref_name }}", "inline": true },
+                  { "name": "Autor", "value": "${{ github.actor }}", "inline": true },
+                  { "name": "Commit", "value": "${{ github.event.head_commit.message }}" },
+                  { "name": "Ver en GitHub", "value": "[Abrir pipeline](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" }
+                ]
+              }]
+            }' \
+            "${{ secrets.DISCORD_WEBHOOK }}"
