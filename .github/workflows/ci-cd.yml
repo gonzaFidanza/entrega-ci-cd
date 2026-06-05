@@ -165,15 +165,13 @@ jobs:
             diagnostico="Todas las etapas pasaron. Deploy verificado en Render."
           fi
 
-          # Detalle por etapa (multilínea real)
-          etapas=$(cat <<EOF
-$(emoji_for "$BUILD_RESULT")  **Build**       — \`$BUILD_RESULT\`
-$(emoji_for "$LINT_RESULT")  **Lint**        — \`$LINT_RESULT\`
-$(emoji_for "$TEST_RESULT")  **Test**        — \`$TEST_RESULT\`
-$(emoji_for "$DOCKER_RESULT")  **Docker**      — \`$DOCKER_RESULT\`
-$(emoji_for "$DEPLOY_RESULT")  **Deploy**      — \`$DEPLOY_RESULT\`
-EOF
-)
+          # Detalle por etapa (multilínea real, sin heredoc para no romper el YAML)
+          NL=$'\n'
+          etapas="$(emoji_for "$BUILD_RESULT")  **Build** — \`$BUILD_RESULT\`"
+          etapas="${etapas}${NL}$(emoji_for "$LINT_RESULT")  **Lint** — \`$LINT_RESULT\`"
+          etapas="${etapas}${NL}$(emoji_for "$TEST_RESULT")  **Test** — \`$TEST_RESULT\`"
+          etapas="${etapas}${NL}$(emoji_for "$DOCKER_RESULT")  **Docker** — \`$DOCKER_RESULT\`"
+          etapas="${etapas}${NL}$(emoji_for "$DEPLOY_RESULT")  **Deploy** — \`$DEPLOY_RESULT\`"
 
           # Lista de etapas que fallaron (solo failure, no skipped/cancelled)
           fallos=""
