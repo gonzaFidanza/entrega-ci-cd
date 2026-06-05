@@ -1,7 +1,7 @@
 ---
 id: SPEC-002
 title: Rate limiting en endpoints públicos
-status: in-progress
+status: done
 priority: medium
 ---
 
