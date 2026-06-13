@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Piano · CI/CD Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="stage">
+      <header class="header">
+        <h1 class="title">Piano</h1>
+        <p class="subtitle">
+          Tocá con el <strong>mouse</strong> o con el <strong>teclado</strong> de tu compu
+        </p>
+      </header>
+
+      <section class="controls">
+        <label class="control">
+          <span>Onda</span>
+          <select id="waveform">
+            <option value="triangle">Triangular (suave)</option>
+            <option value="sine">Senoidal (pura)</option>
+            <option value="square">Cuadrada (retro)</option>
+            <option value="sawtooth">Diente de sierra</option>
+          </select>
+        </label>
+        <label class="control">
+          <span>Volumen</span>
+          <input id="volume" type="range" min="0" max="100" value="60" />
+        </label>
+        <label class="control control--toggle">
+          <input id="labels" type="checkbox" checked />
+          <span>Mostrar teclas</span>
+        </label>
+      </section>
+
+      <div class="piano" id="piano" aria-label="Teclado de piano"></div>
+
+      <footer class="footer">
+        <span id="status" class="status">Hacé click en una tecla para empezar</span>
+        <a class="repo-hint" href="/api/notes" target="_blank" rel="noopener">
+          ver /api/notes
+        </a>
+      </footer>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

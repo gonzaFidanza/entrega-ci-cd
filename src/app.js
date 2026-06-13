@@ -1,8 +1,20 @@
 // src/app.js
 // Implementación de SPEC-001-saludo (ver /specs/saludo.md)
+// e SPEC-004-piano (ver /specs/SPEC-004-piano.md)
+const path = require('path');
 const express = require('express');
+const { getNotes } = require('./piano');
 
 const app = express();
+
+// Frontend del piano: se sirve estático desde src/public.
+// La raíz "/" devuelve el index.html del piano.
+app.use(express.static(path.join(__dirname, 'public')));
+
+// SPEC-004 CA-1: API que expone la definición del teclado (fuente única de verdad).
+app.get('/api/notes', (req, res) => {
+  res.status(200).json({ notes: getNotes() });
+});
 
 // CA-1, CA-2, CA-3, CA-4: endpoint de saludo
 app.get('/saludo', (req, res) => {

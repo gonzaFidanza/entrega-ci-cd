@@ -2,7 +2,9 @@
 
 [![CI/CD Pipeline](https://github.com/USUARIO/entrega-ci-cd/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/USUARIO/entrega-ci-cd/actions)
 
-API mínima en Node.js + Express que demuestra un pipeline completo de **Integración y Entrega Continua**, con **Spec Driven Development** como metodología.
+**Piano interactivo** en Node.js + Express (tocable con mouse o con el teclado de la compu, sonido sintetizado con Web Audio) que sirve de excusa para demostrar un pipeline completo de **Integración y Entrega Continua**, con **Spec Driven Development** como metodología.
+
+> El piano es la cara visible; lo importante es la cadena **spec ↔ test ↔ código ↔ pipeline** que lo respalda. Para ver cómo romper cada etapa a propósito (útil para defender el trabajo), mirá [`docs/COMO-ROMPER-EL-PIPELINE.md`](docs/COMO-ROMPER-EL-PIPELINE.md).
 
 ---
 
@@ -55,11 +57,22 @@ entrega-ci-cd/
 ├── .github/workflows/
 │   └── ci-cd.yml             ← pipeline de GitHub Actions (servidor de CI)
 ├── specs/
-│   └── saludo.md             ← Spec con criterios de aceptación (SDD)
+│   ├── saludo.md             ← SPEC-001: endpoint de saludo
+│   ├── SPEC-002-rate-limit.md
+│   ├── SPEC-003-metrics.md
+│   └── SPEC-004-piano.md     ← Spec del piano (criterios de aceptación, SDD)
 ├── src/
-│   └── app.js                ← Implementación
+│   ├── app.js                ← Servidor Express (sirve el piano + APIs)
+│   ├── piano.js              ← Lógica pura: notas y frecuencias (fuente de verdad)
+│   └── public/               ← Frontend del piano (HTML/CSS/JS, Web Audio)
+│       ├── index.html
+│       ├── styles.css
+│       └── app.js
 ├── tests/
-│   └── saludo.test.js        ← Tests automatizados (1 por criterio)
+│   ├── saludo.test.js        ← Tests de SPEC-001 (1 por criterio)
+│   └── piano.test.js         ← Tests de SPEC-004 (matemática de notas + API)
+├── docs/
+│   └── COMO-ROMPER-EL-PIPELINE.md  ← Guía didáctica: cómo hacer fallar cada etapa
 ├── .dockerignore
 ├── .eslintrc.json            ← Configuración de inspección de código
 ├── .gitignore
@@ -82,10 +95,13 @@ npm test
 # 3. Correr la app
 npm start
 
-# 4. Probar el endpoint
-curl http://localhost:3000/saludo
-curl "http://localhost:3000/saludo?nombre=Profesor"
-curl http://localhost:3000/health
+# 4. Abrir el piano en el navegador
+#    http://localhost:3000/   ← tocá con el mouse o con el teclado (a w s e d f...)
+
+# 5. Probar los endpoints
+curl http://localhost:3000/api/notes   # definición del teclado (JSON)
+curl http://localhost:3000/health      # health check
+curl http://localhost:3000/saludo      # endpoint original (sigue vivo)
 ```
 
 ## Con Docker
@@ -103,7 +119,7 @@ docker run -p 3000:3000 entrega-ci-cd
 2. **GitHub Actions** detecta el push y arranca el pipeline
 3. **Build**: instala dependencias con `npm ci`
 4. **Lint**: ESLint analiza estáticamente el código
-5. **Test**: Jest ejecuta los 6 tests derivados de la spec
+5. **Test**: Jest ejecuta los tests derivados de las specs (saludo + piano)
 6. **Docker Build**: se construye la imagen del contenedor
 7. **Deploy**: si todo lo anterior pasó y es push a `main`, se dispara el deploy en Render
 8. **Feedback**: si algo falla, GitHub notifica por email; el badge del README cambia a rojo
