@@ -27,7 +27,7 @@ endpoint: incluye lógica pura testeable (matemática de frecuencias por
 temperamento igual), una API y un frontend estático, todo validado por la
 misma cadena spec ↔ test ↔ código.
 
----
+--- 
 
 ## Criterios de aceptación
 
