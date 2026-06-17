@@ -9,7 +9,7 @@ const app = express();
 
 // Frontend del piano: se sirve estático desde src/public.
 // La raíz "/" devuelve el index.html del piano.
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')))
 
 // SPEC-004 CA-1: API que expone la definición del teclado (fuente única de verdad).
 app.get('/api/notes', (req, res) => {
