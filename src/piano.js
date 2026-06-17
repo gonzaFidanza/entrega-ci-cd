@@ -7,7 +7,7 @@
 // matemática de las frecuencias sea fácil de testear de forma aislada.
 
 // Frecuencia de referencia: La4 (A4) = 440 Hz (estándar ISO 16).
-const A4_FREQ = 450;
+const A4_FREQ = 440;
 
 // Definición del teclado: 17 semitonos desde Do4 (C4) hasta Mi5 (E5).
 // - semitones: distancia en semitonos respecto de A4 (negativo = más grave).
