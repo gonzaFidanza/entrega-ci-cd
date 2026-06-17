@@ -25,7 +25,7 @@ RUN addgroup -S app && adduser -S app -G app
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copiamos el código
-
+COPY src ./src
 COPY package.json ./
 
 USER app
