@@ -113,10 +113,10 @@ jobs:
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
-      RENDER_APP_URL: https://entrega-ci-c.onrender.com
+      RENDER_APP_URL: https://entrega-ci-cd.onrender.com
     steps:
       - name: Trigger deploy en Render
-        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FALLA }}"
 
       - name: Esperar a que Render termine el deploy
         run: sleep 90
