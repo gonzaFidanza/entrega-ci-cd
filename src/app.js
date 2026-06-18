@@ -18,7 +18,7 @@ app.get('/api/notes', (req, res) => {
 
 // CA-1, CA-2, CA-3, CA-4: endpoint de saludo
 app.get('/saludo', (req, res) => {
-  const nombre = req.query.nombre || 'Mundo';
+  const nombre = req.query.nombre || 'Mundo falla';
   res.status(200).json({
     mensaje: `Hola ${nombre}`,
     fecha: new Date().toISOString(),
