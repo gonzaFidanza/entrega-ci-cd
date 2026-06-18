@@ -20,7 +20,7 @@ app.get('/api/notes', (req, res) => {
 app.get('/saludo', (req, res) => {
   const nombre = req.query.nombre || 'Mundo';
   res.status(200).json({
-    mensaje: `Hola ${nombre} falla`,
+    mensaje: `Hola ${nombre}`,
     fecha: new Date().toISOString(),
   });
 });
