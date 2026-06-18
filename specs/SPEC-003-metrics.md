@@ -1,7 +1,7 @@
 ---
 id: SPEC-003
 title: Métricas Prometheus
-status: draft
+status: in-progress
 priority: low
 ---
 
@@ -11,7 +11,7 @@ priority: low
 `SPEC-003-metrics`
 
 ## Estado
-📝 Draft
+🚧 En progreso
 
 ## Descripción
 Exponer un endpoint `/metrics` en formato Prometheus para que el monitor
